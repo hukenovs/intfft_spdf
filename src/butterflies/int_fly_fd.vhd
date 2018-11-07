@@ -79,32 +79,23 @@ function addsub_delay(iDW: integer) return integer is
 	variable ret_val : integer:=0;
 begin
 	if (iDW < 48) then
-		ret_val := 2+2;
+		ret_val := 2;
 	else 
-		ret_val := 3+2;
+		ret_val := 3;
 	end if;
 	return ret_val; 
 end function addsub_delay;
 
 constant ADD_DELAY	: integer:=addsub_delay(DTW);
 
-type std_delayN is array (ADD_DELAY-1 downto 0) of std_logic_vector(DTW-1 downto 0);
-
 ---------------- Multiplexers 0/1 ----------------
 signal mux_sel			: std_logic:='0';
-
-signal mux0_ia_re		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux0_ia_im		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux0_ib_re		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux0_ib_im		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
 signal mux1_ia_re		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal mux1_ia_im		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal mux1_ib_re		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal mux1_ib_im		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
-signal mux0_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux0_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal mux1_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal mux1_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
@@ -115,6 +106,7 @@ signal ia_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
 signal iz_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal iz_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
+signal di_zn			: std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
 
 signal oa_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal oa_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
@@ -122,11 +114,6 @@ signal ob_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal ob_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
 ---------------- Align delays ----------------
-signal dz0_re			: std_delayN;
-signal dz0_im			: std_delayN;
-signal dz1_re			: std_delayN;
-signal dz1_im			: std_delayN;
-
 signal di_ez			: std_logic;
 
 signal mux_ena			: std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
@@ -141,9 +128,13 @@ begin
 	if rising_edge(clk) then
 		if (RST = '1') then
 			cnt_en <= '0' after td;
+			mux_sel <= '0' after td;
 		else
 			if (di_en = '1') then
 				cnt_en <= not cnt_en after td;
+			end if;
+			if (di_ez = '1') then
+				mux_sel <= not mux_sel after td;
 			end if;
 		end if;
 	end if;
@@ -152,69 +143,54 @@ end process;
 pr_mux: process(clk) is
 begin
 	if rising_edge(clk) then
-		---- Mux data A / B datapath ----
-		mux_sel <= mux_ena(mux_ena'left-1) after td;
+		di_ez <= di_zn(di_zn'left) after td;
+		di_zn <= di_zn(di_zn'left-1 downto 0) & di_en after td;
+		
 		mux_ena <= mux_ena(mux_ena'left-1 downto 0) & cnt_en after td;
-		---- Align input data and ramb output ----
-		dz0_re <= dz0_re(dz0_re'left-1 downto 0) & di_re after td;
-		dz0_im <= dz0_im(dz0_im'left-1 downto 0) & di_im after td;
 	end if;
 end process;
 
----- Select data for input multiplexer "0" ----
-mux0_ia_re <= dz0_re(dz0_re'left);
-mux0_ia_im <= dz0_im(dz0_im'left);
-
-mux0_ib_re <= ob_re;
-mux0_ib_im <= ob_im;
-
-pr_mux0: process(clk) is
-begin
-	if rising_edge(clk) then
-		if (mux_sel = '0') then
-			mux0_re <= mux0_ia_re after td;
-			mux0_im <= mux0_ia_im after td;
-		else
-			mux0_re <= mux0_ib_re after td;
-			mux0_im <= mux0_ib_im after td;
-		end if;
-	end if;
-end process;
-
-
----- Align input data and ramb output ----
-dz1_re <= dz1_re(dz1_re'left-1 downto 0) & ia_re after td when rising_edge(clk);
-dz1_im <= dz1_im(dz1_im'left-1 downto 0) & ia_im after td when rising_edge(clk);
 
 ---- Select data for input multiplexer "1" ----
 mux1_ia_re <= oa_re;
 mux1_ia_im <= oa_im;
 
-mux1_ib_re <= dz1_re(dz1_re'left-2);
-mux1_ib_im <= dz1_im(dz1_im'left-2);
-
 pr_mux1: process(clk) is
 begin
 	if rising_edge(clk) then
-		if (mux_sel = '1') then
-			mux1_re <= mux1_ia_re after td;
-			mux1_im <= mux1_ia_im after td;
-		else
-			mux1_re <= mux1_ib_re after td;
-			mux1_im <= mux1_ib_im after td;
+		if (di_ez = '1') then
+			if (mux_sel = '1') then
+				mux1_re <= oa_re after td;
+				mux1_im <= oa_im after td;
+			else
+				mux1_re <= ob_re after td;
+				mux1_im <= ob_im after td;
+			end if;
 		end if;
 	end if;
 end process;
 
----- Input data for Butterfly ----
-ib_re <= di_re after td when rising_edge(clk) and (di_en = '1'); 
-ib_im <= di_im after td when rising_edge(clk) and (di_en = '1');
-ia_re <= mux0_re;
-ia_im <= mux0_im;
+pr_dia: process(clk) is
+begin
+	if rising_edge(clk) then
+		if (di_en = '1') then
+			if (cnt_en = '0') then
+				iz_re <= di_re after td;
+			    iz_im <= di_im after td;
+			end if;
+			if (cnt_en = '1') then
+				ia_re <= iz_re after td;
+			    ia_im <= iz_im after td;
+				ib_re <= di_re after td;
+			    ib_im <= di_im after td;
+			end if;
+		end if;
+	end if;
+end process;
 
 ---- Delay imitation Add/Sub logic ----
 xLOGIC: if (XUSE = FALSE) generate
-	type std_delayX is array (ADD_DELAY-1-2 downto 0) of std_logic_vector(DTW-1 downto 0);
+	type std_delayX is array (ADD_DELAY-1 downto 0) of std_logic_vector(DTW-1 downto 0);
 	signal add_re	: std_delayX;
 	signal add_im	: std_delayX;
 	signal sub_re	: std_delayX;
@@ -235,13 +211,8 @@ end generate;
 
 
 ---- Output data ----
-pr_dout: process(clk) is
-begin
-	if rising_edge(clk) then
-		do_re <= mux1_re after td;
-		do_im <= mux1_im after td;
-	end if;
-end process;
+do_re <= mux1_re;
+do_im <= mux1_im;
 
 ------ SUM = (A + B), DIF = (A-B) --------
 xADDSUB: if (XUSE = TRUE) generate
