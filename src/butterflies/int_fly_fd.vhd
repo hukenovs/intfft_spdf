@@ -10,14 +10,13 @@
 --
 -------------------------------------------------------------------------------
 --
---	Version 1.0  10.12.2017
---    Description: Simple butterfly Radix-2 for FFT (DIF) based on FD
+--	Version 1.0  15.09.2018
+--    Description: Simple butterfly Radix-2 for FFT (DIF) based on flip-flop
 --
 --    Algorithm: Decimation in frequency
 --
 --    X = (A+B), 
 --    Y = (A-B)*W;					
---
 --
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -53,7 +52,6 @@ use ieee.std_logic_unsigned.all;
 
 entity int_fly_fd is
 	generic (
-		TD			: time:=0.5ns; --! Simulation time
 		DTW			: integer:=16; --! Data width
 		XUSE		: boolean:=FALSE; --! Use Add/Sub scheme or use delay data path
 		XSER 		: string:="OLD" --! Xilinx series: NEW - DSP48E2, OLD - DSP48E1
@@ -89,37 +87,30 @@ end function addsub_delay;
 constant ADD_DELAY	: integer:=addsub_delay(DTW);
 
 ---------------- Multiplexers 0/1 ----------------
-signal mux_sel			: std_logic:='0';
-
-signal mux1_ia_re		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux1_ia_im		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux1_ib_re		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux1_ib_im		: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-
-signal mux1_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux1_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
+signal mux_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
+signal mux_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
 signal ib_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal ib_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal ia_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal ia_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
-signal iz_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal iz_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal di_zn			: std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
-
 signal oa_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal oa_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal ob_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal ob_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
+signal oz_re			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
+signal oz_im			: std_logic_vector(DTW-1 downto 0):=(others=>'0');
+
 ---------------- Align delays ----------------
+signal di_zn			: std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
 signal di_ez			: std_logic;
 
 signal mux_ena			: std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
+signal mux_sel			: std_logic:='0';
 
 signal cnt_en			: std_logic;
-signal cnt_vl			: std_logic;
 
 begin
 
@@ -127,14 +118,10 @@ pr_cnt: process(clk) is
 begin
 	if rising_edge(clk) then
 		if (RST = '1') then
-			cnt_en <= '0' after td;
-			mux_sel <= '0' after td;
+			cnt_en <= '0';
 		else
 			if (di_en = '1') then
-				cnt_en <= not cnt_en after td;
-			end if;
-			if (di_ez = '1') then
-				mux_sel <= not mux_sel after td;
+				cnt_en <= not cnt_en;
 			end if;
 		end if;
 	end if;
@@ -143,78 +130,58 @@ end process;
 pr_mux: process(clk) is
 begin
 	if rising_edge(clk) then
-		di_ez <= di_zn(di_zn'left) after td;
-		di_zn <= di_zn(di_zn'left-1 downto 0) & di_en after td;
-		
-		mux_ena <= mux_ena(mux_ena'left-1 downto 0) & cnt_en after td;
+		di_ez <= di_zn(di_zn'left);
+		di_zn <= di_zn(di_zn'left-1 downto 0) & di_en;
+		mux_sel <= mux_ena(mux_ena'left);
+		mux_ena <= mux_ena(mux_ena'left-1 downto 0) & cnt_en;
 	end if;
 end process;
 
-
----- Select data for input multiplexer "1" ----
-mux1_ia_re <= oa_re;
-mux1_ia_im <= oa_im;
-
+-------- Select data for input multiplexer "1" --------
 pr_mux1: process(clk) is
 begin
 	if rising_edge(clk) then
 		if (di_ez = '1') then
-			if (mux_sel = '1') then
-				mux1_re <= oa_re after td;
-				mux1_im <= oa_im after td;
+			if (mux_sel = '0') then
+				mux_re <= oa_re;
+				mux_im <= oa_im;
 			else
-				mux1_re <= ob_re after td;
-				mux1_im <= ob_im after td;
+				mux_re <= oz_re;
+				mux_im <= oz_im;
 			end if;
 		end if;
 	end if;
 end process;
 
-pr_dia: process(clk) is
-begin
-	if rising_edge(clk) then
-		if (di_en = '1') then
-			if (cnt_en = '0') then
-				iz_re <= di_re after td;
-			    iz_im <= di_im after td;
-			end if;
-			if (cnt_en = '1') then
-				ia_re <= iz_re after td;
-			    ia_im <= iz_im after td;
-				ib_re <= di_re after td;
-			    ib_im <= di_im after td;
-			end if;
-		end if;
-	end if;
-end process;
+-------- IA / IB & OA / OB ports for Add/Sub logic --------
+ia_re <= di_re when rising_edge(clk);
+ia_im <= di_im when rising_edge(clk);
+ib_re <= di_re;
+ib_im <= di_im;
 
----- Delay imitation Add/Sub logic ----
+oz_re <= ob_re when rising_edge(clk);
+oz_im <= ob_im when rising_edge(clk);
+
+-------- Delay imitation Add/Sub logic --------
 xLOGIC: if (XUSE = FALSE) generate
 	type std_delayX is array (ADD_DELAY-1 downto 0) of std_logic_vector(DTW-1 downto 0);
 	signal add_re	: std_delayX;
 	signal add_im	: std_delayX;
 	signal sub_re	: std_delayX;
-	signal sub_im	: std_delayX;
-	
+	signal sub_im	: std_delayX;	
 begin
-	add_re <= add_re(add_re'left-1 downto 0) & ia_re after td when rising_edge(clk);
-    add_im <= add_im(add_im'left-1 downto 0) & ia_im after td when rising_edge(clk);
-    sub_re <= sub_re(sub_re'left-1 downto 0) & ib_re after td when rising_edge(clk);
-    sub_im <= sub_im(sub_im'left-1 downto 0) & ib_im after td when rising_edge(clk);
+	add_re <= add_re(add_re'left-1 downto 0) & ia_re when rising_edge(clk);
+    add_im <= add_im(add_im'left-1 downto 0) & ia_im when rising_edge(clk);
+    sub_re <= sub_re(sub_re'left-1 downto 0) & ib_re when rising_edge(clk);
+    sub_im <= sub_im(sub_im'left-1 downto 0) & ib_im when rising_edge(clk);
 
-	oa_re <= add_re(add_re'left) + x"1000";
-	oa_im <= add_im(add_im'left) + x"1000";
-	ob_re <= sub_re(sub_re'left) + x"2000";
-	ob_im <= sub_im(sub_im'left) + x"2000";
-	
+	oa_re <= add_re(add_re'left);
+	oa_im <= add_im(add_im'left);
+	ob_re <= sub_re(sub_re'left);
+	ob_im <= sub_im(sub_im'left);
 end generate;
 
-
----- Output data ----
-do_re <= mux1_re;
-do_im <= mux1_im;
-
------- SUM = (A + B), DIF = (A-B) --------
+-------- SUM = (A + B), DIF = (A-B) --------
 xADDSUB: if (XUSE = TRUE) generate
 	xDSP: entity work.int_addsub_dsp48
 		generic map (
@@ -237,5 +204,9 @@ xADDSUB: if (XUSE = TRUE) generate
 		);
 end generate;
 
+-------- Output data --------
+do_re <= mux_re;
+do_im <= mux_im;
+do_vl <= di_ez when rising_edge(clk);
 
 end int_fly_fd;
