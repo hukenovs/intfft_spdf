@@ -6,18 +6,14 @@
 -- Company     : 
 -- E-mail      : sallador@bk.ru
 --
--- Description : SPDF Radix-2 FFT Butterfly (Double FD mode)
---
 -------------------------------------------------------------------------------
 --
---    Version 1.0  12.10.2018
---    Description: SPDF Radix-2 FFT Butterfly (Double FD mode)
+-- Version 1.0 : 11.01.2019
 --
---    Algorithm: Decimation in frequency
+-- Description : Single-Path Delay-Feedback butterfly Radix-2 (Double FD mode)
 --
---    X = (A+B), 
---    Y = (A-B)*W;
---
+-- X = (A+B)
+-- Y = (A-B)
 --
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -53,7 +49,6 @@ use ieee.std_logic_unsigned.all;
 
 entity int_fly_fd2 is
     generic (
-        TD        : time:=0.5ns; --! Simulation time
         DTW       : integer:=16; --! Data width
         XUSE      : boolean:=FALSE; --! Use Add/Sub scheme or use delay data path
         XSER      : string:="OLD" --! Xilinx series: NEW - DSP48E2, OLD - DSP48E1

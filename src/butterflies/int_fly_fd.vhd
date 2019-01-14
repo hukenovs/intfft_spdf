@@ -6,18 +6,14 @@
 -- Company     : 
 -- E-mail      : sallador@bk.ru
 --
--- Description : Single-Path Delay-Feedback butterfly Radix-2 (FD only)
---
 -------------------------------------------------------------------------------
 --
---    Version 1.0  10.12.2017
---    Description: Simple butterfly Radix-2 for FFT (DIF) based on FD
+-- Version 1.0 : 11.01.2019
 --
---    Algorithm: Decimation in frequency
+-- Description : Single-Path Delay-Feedback butterfly Radix-2 (Simple FD)
 --
---    X = (A+B), 
---    Y = (A-B)*W;                    
---
+-- X = (A+B)
+-- Y = (A-B)
 --
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------

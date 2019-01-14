@@ -6,18 +6,14 @@
 -- Company     : 
 -- E-mail      : sallador@bk.ru
 --
+-------------------------------------------------------------------------------
+-- 
+-- Version 1.0 : 14.01.2019
+--
 -- Description : Single-Path Delay-Feedback butterfly Radix-2
 --
--------------------------------------------------------------------------------
---
---    Version 1.0  10.12.2017
---    Description: Simple butterfly Radix-2 for FFT (DIF)
---
---    Algorithm: Decimation in frequency
---
---    X = (A+B), 
---    Y = (A-B)*W;                    
---
+-- X = (A+B)
+-- Y = (A-B)
 --
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -368,7 +364,7 @@ begin
     end if;
 end process;
 
------- SUM = (A + B), DIF = (A-B) --------
+------ SUM = (A + B), DIF = (A - B) --------
 xADDSUB: if (XUSE = TRUE) generate
     xDSP: entity work.int_addsub_dsp48
         generic map (
