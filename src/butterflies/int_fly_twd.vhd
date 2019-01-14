@@ -145,7 +145,7 @@ end process;
 ------------ Delay Assign ------------
 ena_dt <= ena_zz(DATA_DELAY-1);
 del_re <= dre_zz(DATA_DELAY-1);
-del_im <= dim_zz(DATA_DELAY-2);
+del_im <= dim_zz(DATA_DELAY-1);
 
 ------------ Complex Multiplier ------------
 xCMLT: entity work.int_cmult_dsp48
