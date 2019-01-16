@@ -70,8 +70,8 @@ entity int_fly_twd is
         WW_RE      : in  std_logic_vector(TWD-1 downto 0); --! Re even input data
         WW_IM      : in  std_logic_vector(TWD-1 downto 0); --! Im even input data
 
-        DO_RE      : out std_logic_vector(DTW downto 0); --! Re even output data
-        DO_IM      : out std_logic_vector(DTW downto 0); --! Im even output data
+        DO_RE      : out std_logic_vector(DTW-1 downto 0); --! Re even output data
+        DO_IM      : out std_logic_vector(DTW-1 downto 0); --! Im even output data
         DO_VL      : out std_logic; --! Output data valid
         
         RST        : in  std_logic; --! Global Reset
@@ -113,7 +113,7 @@ begin
     return ret_val; 
 end function find_delay;
 
-constant DATA_DELAY : integer:=find_delay(XSER, DTW, TFW);
+constant DATA_DELAY : integer:=find_delay(XSER, DTW, TWD);
 type std_logic_delayN is array (DATA_DELAY-1 downto 0) of std_logic_vector(DTW-1 downto 0);
 
 signal dre_zz      : std_logic_delayN;
@@ -182,7 +182,7 @@ begin
 end process;
 
 ------------ Output mux data ------------
-pr_mux: process(clk) is
+pr_out: process(clk) is
 begin
     if rising_edge(clk) then
         DO_VL <= ena_dt;
