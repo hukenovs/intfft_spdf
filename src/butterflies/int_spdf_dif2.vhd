@@ -60,11 +60,11 @@ entity int_spdf_dif2 is
     generic (
         FORMAT     : integer:=1; --! 1 - Uscaled, 0 - Scaled
         RNDMODE    : string:="TRUNCATE"; --integer:=0; --! 0 - Truncate, 1 - Rounding (FORMAT should be = 0)
-        NFFT       : integer:=0;  --! log2 of N points
+        NFFT       : integer:=10; --! log2 of N points
         STAGE      : integer:=0;  --! Butterfly stages
         DATA_WIDTH : integer:=16; --! Data width
         TWDL_WIDTH : integer:=16; --! Twiddle width
-        XUSE       : boolean:=FALSE; --! Use Add/Sub scheme or use delay data path
+        XUSE       : boolean:=TRUE; --! Use Add/Sub scheme or use delay data path
         XSER       : string:="OLD" --! Xilinx series: NEW - DSP48E2, OLD - DSP48E1
     );
     port (
@@ -93,13 +93,6 @@ begin
     end if;
     return ret_val; 
 end function;
-
-constant FTWDL     : integer:=fn_twd_delay(STAGE);
-
-type std_logic_delayN is array (FTWDL-1 downto 0) of std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
-signal dre_zz      : std_logic_delayN;
-signal dim_zz      : std_logic_delayN;
-signal ena_zz      : std_logic_vector(FTWDL-1 downto 0);
 
 signal das_re      : std_logic_vector(DATA_WIDTH downto 0);
 signal das_im      : std_logic_vector(DATA_WIDTH downto 0);
@@ -180,61 +173,126 @@ begin
             DO_IM        => das_im,
             DO_VL        => das_vl
         );
-    ----------------------------------------------------------------------------
-    -- Align data and twiddles -------------------------------------------------
-    ----------------------------------------------------------------------------
-    pr_del: process(clk) is
+
+
+    xSTAGE0: if (STAGE = 0) generate
+        DO_RE <= fmt_re;
+        DO_IM <= fmt_im;
+        DO_VL <= fmt_vl;
+    end generate;
+
+    xSTAGE1: if (STAGE = 1) generate
+        signal dt_cnt   : std_logic_vector(NFFT-STAGE-1 downto 0);
+        signal dt_sw    : std_logic;
     begin
-        if rising_edge(clk) then
-            dre_zz <= dre_zz(FTWDL-2 downto 0) & fmt_re;
-            dim_zz <= dim_zz(FTWDL-2 downto 0) & fmt_im;
-            ena_zz <= ena_zz(FTWDL-2 downto 0) & fmt_vl;
-        end if;
-    end process;
+        ---- Counter for twiddle factor ----
+        pr_cnt: process(clk) is
+        begin
+            if rising_edge(clk) then
+                if (RST = '1') then
+                    dt_cnt <= (others => '0');
+                elsif (fmt_vl = '1') then
+                    dt_cnt <= dt_cnt + '1';
+                end if;
+            end if;
+        end process;
+        dt_sw <= dt_cnt(NFFT-STAGE-1); -- when rising_edge(clk);
+
+        --------------------------------------------------------------
+        ---- NB! Multiplication by (-1) is the same as inverse.   ----
+        ---- But in 2's complement you should inverse data and +1 ----
+        ---- Most negative value in 2's complement is WIERD NUM   ----
+        ---- So: for positive values use Y = not(X) + 1,          ----
+        ---- and for negative values use Y = not(X)               ----
+        ---- It helps you w/ overflow. Or use another logic       ----
+        --------------------------------------------------------------
+
+        ---- Flip twiddles ----
+        pr_inv: process(clk) is
+        begin
+            if rising_edge(clk) then
+                DO_VL <= fmt_vl;
+                ---- WW(0){Re,Im} = {1, 0} ----
+                if (dt_sw = '0') then
+                    DO_RE <= fmt_re;
+                    DO_IM <= fmt_im;
+                ---- WW(1){Re,Im} = {0, 1} ----
+                else
+                    DO_RE <= fmt_im;
+                    if (fmt_re(DATA_WIDTH+FORMAT-1) = '0') then
+                        DO_IM <= not(fmt_re) + '1';
+                    else
+                        DO_IM <= not(fmt_re);
+                    end if;
+                end if;
+            end if;
+        end process;
+    end generate;
 
     ----------------------------------------------------------------------------
     -- Complex multiplier and delay --------------------------------------------
     ----------------------------------------------------------------------------
-    xSPDF_TWDLS: entity work.int_fly_twd
-        generic map (
-            STAGE        => STAGE,
-            NFFT         => NFFT,
-            DTW          => DATA_WIDTH+FORMAT,
-            XSER         => XSER
-        )
-        port map (
-            RST          => RST,
-            CLK          => CLK,
+    xSTAGEn: if (STAGE > 1) generate
+        constant FTWDL     : integer:=fn_twd_delay(STAGE);
 
-            DI_RE        => dre_zz(FTWDL-1),
-            DI_IM        => dim_zz(FTWDL-1),
-            DI_EN        => ena_zz(FTWDL-1),
+        type std_logic_delayN is array (FTWDL-1 downto 0) of std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
+        signal dre_zz      : std_logic_delayN;
+        signal dim_zz      : std_logic_delayN;
+        signal ena_zz      : std_logic_vector(FTWDL-1 downto 0);
+    begin
+        ----------------------------------------------------------------------------
+        -- Align data and twiddles -------------------------------------------------
+        ----------------------------------------------------------------------------
+        pr_del: process(clk) is
+        begin
+            if rising_edge(clk) then
+                dre_zz <= dre_zz(FTWDL-2 downto 0) & fmt_re;
+                dim_zz <= dim_zz(FTWDL-2 downto 0) & fmt_im;
+                ena_zz <= ena_zz(FTWDL-2 downto 0) & fmt_vl;
+            end if;
+        end process;
 
-            WW_RE        => ww_re,
-            WW_IM        => ww_im,
-            
-            DO_RE        => DO_RE,
-            DO_IM        => DO_IM,
-            DO_VL        => DO_VL
-        );
 
-    ----------------------------------------------------------------------------
-    -- Twiddle factor ----------------------------------------------------------
-    ----------------------------------------------------------------------------
-    xTWIDDLE: entity work.rom_twiddle_int
-        generic map (
-            AWD      => TWDL_WIDTH,
-            NFFT     => NFFT,
-            STAGE    => STAGE,
-            XSER     => XSER,
-            USE_MLT  => FALSE
-        )
-        port map (
-            CLK      => CLK,
-            RST      => rst,
-            WW_EN    => das_vl,
-            WW_RE    => ww_re,
-            WW_IM    => ww_im
-        );
+        xSPDF_TWDLS: entity work.int_fly_twd
+            generic map (
+                STAGE        => STAGE,
+                NFFT         => NFFT,
+                DTW          => DATA_WIDTH+FORMAT,
+                XSER         => XSER
+            )
+            port map (
+                RST          => RST,
+                CLK          => CLK,
 
+                DI_RE        => dre_zz(FTWDL-1),
+                DI_IM        => dim_zz(FTWDL-1),
+                DI_EN        => ena_zz(FTWDL-1),
+
+                WW_RE        => ww_re,
+                WW_IM        => ww_im,
+                
+                DO_RE        => DO_RE,
+                DO_IM        => DO_IM,
+                DO_VL        => DO_VL
+            );
+
+        ----------------------------------------------------------------------------
+        -- Twiddle factor ----------------------------------------------------------
+        ----------------------------------------------------------------------------
+        xTWIDDLE: entity work.rom_twiddle_int
+            generic map (
+                AWD      => TWDL_WIDTH,
+                NFFT     => NFFT,
+                STAGE    => NFFT-STAGE,
+                XSER     => XSER,
+                USE_MLT  => FALSE
+            )
+            port map (
+                CLK      => CLK,
+                RST      => rst,
+                WW_EN    => das_vl,
+                WW_RE    => ww_re,
+                WW_IM    => ww_im
+            );
+    end generate;
 end int_spdf_dif2;

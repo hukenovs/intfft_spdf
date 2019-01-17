@@ -217,7 +217,7 @@ end process;
 rd_del <= rd_del(rd_del'left-1 downto 0) & cnt_vl when rising_edge(clk);
 rd_out <= rd_del(rd_del'left);
 
----- Counter for multiplexer 0 and RAMB adress (write) ----
+-------- Counter for multiplexer 0 and RAMB adress (write) --------
 pr_addr: process(clk) is
 begin
     if rising_edge(clk) then
@@ -243,7 +243,7 @@ begin
     end if;
 end process;
 
----- Select data for input multiplexer "0" ----
+-------- Select data for input multiplexer "0" --------
 mux0_ia_re <= dz0_re(ADD_DELAY-1);
 mux0_ia_im <= dz0_im(ADD_DELAY-1);
 
@@ -264,11 +264,11 @@ begin
 end process;
 
 
----- Align input data and ramb output ----
+-------- Align input data and ramb output --------
 dz1_re <= dz1_re(ADD_DELAY-2 downto 0) & rd_dat(1*(DTW+1)-1 downto 0*(DTW+1)) when rising_edge(clk);
 dz1_im <= dz1_im(ADD_DELAY-2 downto 0) & rd_dat(2*(DTW+1)-1 downto 1*(DTW+1)) when rising_edge(clk);
 
----- Select data for input multiplexer "1" ----
+-------- Select data for input multiplexer "1" --------
 mux1_ia_re <= oa_re;
 mux1_ia_im <= oa_im;
 
@@ -288,7 +288,7 @@ begin
     end if;
 end process;
 
----- Ramb delay mapping ----
+-------- Ramb delay mapping --------
 wr_del <= wr_del(wr_del'left-1 downto 0) & di_en when rising_edge(clk);
 wr_out <= wr_del(wr_del'left) when rising_edge(clk);
 
@@ -327,17 +327,17 @@ xRAM_DL: entity work.ramb_dp_one_clk
         CLK         => clk
     );    
 
----- Input data for Butterfly ----
+-------- Input data for Butterfly --------
 iz_re <= di_re when rising_edge(clk) and (di_en = '1'); 
 iz_im <= di_im when rising_edge(clk) and (di_en = '1');
 ib_re <= iz_re when rising_edge(clk);
 ib_im <= iz_im when rising_edge(clk);
-ia_re <= rd_dat(1*DTW-1 downto 0*DTW);
-ia_im <= rd_dat(2*DTW-1 downto 1*DTW);
+ia_re <= rd_dat(1*(DTW+0)-1 downto 0*(DTW+0));
+ia_im <= rd_dat(2*(DTW+1)-2 downto 1*(DTW+1));
 
----- Delay imitation Add/Sub logic----
+-------- Delay imitation Add/Sub logic --------
 xLOGIC: if (XUSE = FALSE) generate
-    type std_delayX is array (ADD_DELAY-1-2 downto 0) of std_logic_vector(DTW downto 0);
+    type std_delayX is array (ADD_DELAY-1-2 downto 0) of std_logic_vector(DTW-1 downto 0);
     signal add_re, add_im, sub_re, sub_im   : std_delayX;
 begin
     add_re <= add_re(add_re'left-1 downto 0) & ia_re when rising_edge(clk);
@@ -349,10 +349,14 @@ begin
     oa_im <= add_im(add_im'left)(DTW-1) & add_im(add_im'left);
     ob_re <= sub_re(sub_re'left)(DTW-1) & sub_re(sub_re'left);
     ob_im <= sub_im(sub_im'left)(DTW-1) & sub_im(sub_im'left);
+    -- oa_re <= x"A" & add_re(add_re'left)(DTW-4 downto 0);
+    -- oa_im <= x"A" & add_im(add_im'left)(DTW-4 downto 0);
+    -- ob_re <= x"C" & sub_re(sub_re'left)(DTW-4 downto 0);
+    -- ob_im <= x"C" & sub_im(sub_im'left)(DTW-4 downto 0);    
 end generate;
 
 
----- Output data ----
+-------- Output data --------
 pr_dout: process(clk) is
 begin
     if rising_edge(clk) then
@@ -364,7 +368,7 @@ begin
     end if;
 end process;
 
------- SUM = (A + B), DIF = (A - B) --------
+-------- SUM = (A + B), DIF = (A - B) --------
 xADDSUB: if (XUSE = TRUE) generate
     xDSP: entity work.int_addsub_dsp48
         generic map (
@@ -386,6 +390,5 @@ xADDSUB: if (XUSE = TRUE) generate
             CLK       => clk
         );
 end generate;
-
 
 end int_fly_spd;
