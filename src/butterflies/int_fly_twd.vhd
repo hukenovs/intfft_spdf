@@ -60,6 +60,7 @@ entity int_fly_twd is
         STAGE      : integer:=0;   --! Butterfly stages
         DTW        : integer:=16;  --! Data width
         TWD        : integer:=16;  --! Twiddles width
+        XUSE       : boolean:=FALSE; --! Use Mult Twiddles or use delay data path        
         XSER       : string:="OLD" --! Xilinx series: NEW - DSP48E2, OLD - DSP48E1
     );
     port (
@@ -113,87 +114,101 @@ begin
     return ret_val; 
 end function find_delay;
 
-constant DATA_DELAY : integer:=find_delay(XSER, DTW, TWD);
-type std_logic_delayN is array (DATA_DELAY-1 downto 0) of std_logic_vector(DTW-1 downto 0);
-
-signal dre_zz      : std_logic_delayN;
-signal dim_zz      : std_logic_delayN;
-signal ena_zz      : std_logic_vector(DATA_DELAY-1 downto 0);
-signal ena_dt      : std_logic;
-
----- Select FFT stage ----
-constant NST       : integer:=NFFT-STAGE;
-signal cnt_mux     : std_logic_vector(NST-1 downto 0):=(others=>'0');
-
-signal mlt_re      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mlt_im      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal del_re      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal del_im      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
 begin
 
------------- Delay input data ------------
-pr_del: process(clk) is
+xPASS: if (XUSE = FALSE) generate
+    DO_RE <= DI_RE;
+    DO_IM <= DI_IM;
+    DO_VL <= DI_EN;
+end generate;
+
+xMULT: if (XUSE = TRUE) generate
+    constant DATA_DELAY : integer:=find_delay(XSER, DTW, TWD);
+    type std_logic_delayN is array (DATA_DELAY-1 downto 0) of std_logic_vector(DTW-1 downto 0);
+
+    signal dre_zz      : std_logic_delayN;
+    signal dim_zz      : std_logic_delayN;
+    signal ena_zz      : std_logic_vector(DATA_DELAY-1 downto 0);
+    signal ena_dt      : std_logic;
+
+    ---- Select FFT stage ----
+    constant NST       : integer:=NFFT-STAGE;
+    signal cnt_mux     : std_logic_vector(NST-1 downto 0):=(others=>'0');
+
+    signal mlt_re      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
+    signal mlt_im      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
+    signal del_re      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
+    signal del_im      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
 begin
-    if rising_edge(clk) then
-        dre_zz <= dre_zz(DATA_DELAY-2 downto 0) & DI_RE;
-        dim_zz <= dim_zz(DATA_DELAY-2 downto 0) & DI_IM;
-        ena_zz <= ena_zz(DATA_DELAY-2 downto 0) & DI_EN;
-    end if;
-end process;
+    ------------ Delay input data ------------
+    pr_del: process(clk) is
+    begin
+        if rising_edge(clk) then
+            dre_zz <= dre_zz(DATA_DELAY-2 downto 0) & DI_RE;
+            dim_zz <= dim_zz(DATA_DELAY-2 downto 0) & DI_IM;
+            ena_zz <= ena_zz(DATA_DELAY-2 downto 0) & DI_EN;
+        end if;
+    end process;
 
------------- Delay Assign ------------
-ena_dt <= ena_zz(DATA_DELAY-1);
-del_re <= dre_zz(DATA_DELAY-1);
-del_im <= dim_zz(DATA_DELAY-1);
+    ------------ Delay Assign ------------
+    ena_dt <= ena_zz(DATA_DELAY-1);
+    del_re <= dre_zz(DATA_DELAY-1);
+    del_im <= dim_zz(DATA_DELAY-1);
 
------------- Complex Multiplier ------------
-xCMLT: entity work.int_cmult_dsp48
-    generic map (
-        DTW       => DTW,
-        TWD       => TWD,
-        XSER      => XSER
-    )
-    port map (
-        DI_RE     => DI_RE,
-        DI_IM     => DI_IM,
-        WW_RE     => WW_RE,
-        WW_IM     => WW_IM,
+    ------------ Complex Multiplier ------------
+    xCMLT: entity work.int_cmult_dsp48
+        generic map (
+            DTW       => DTW,
+            TWD       => TWD,
+            XSER      => XSER
+        )
+        port map (
+            DI_RE     => DI_RE,
+            DI_IM     => DI_IM,
+            WW_RE     => WW_RE,
+            WW_IM     => WW_IM,
 
-        DO_RE     => mlt_re,
-        DO_IM     => mlt_im,
+            DO_RE     => mlt_re,
+            DO_IM     => mlt_im,
 
-        RST       => RST,
-        CLK       => CLK
-    );
+            RST       => RST,
+            CLK       => CLK
+        );
 
------------- Counter for mux output flow ------------
-pr_mux: process(clk) is
-begin
-    if rising_edge(clk) then
-        if (RST = '1') then
-            cnt_mux <= (others => '0');
-        else
-            if (ena_dt = '1') then
-                cnt_mux <= cnt_mux + '1';
+    ------------ Counter for mux output flow ------------
+    pr_mux: process(clk) is
+    begin
+        if rising_edge(clk) then
+            if (RST = '1') then
+                cnt_mux <= (others => '0');
+            else
+                if (ena_dt = '1') then
+                    cnt_mux <= cnt_mux + '1';
+                end if;
             end if;
         end if;
-    end if;
-end process;
+    end process;
 
------------- Output mux data ------------
-pr_out: process(clk) is
-begin
-    if rising_edge(clk) then
-        DO_VL <= ena_dt;
-        if (cnt_mux(NST-1) = '0') then
-            DO_RE <= mlt_re;
-            DO_IM <= mlt_im;
-        else
-            DO_RE <= del_re;
-            DO_IM <= del_im;
+    ------------ Output mux data ------------
+    pr_out: process(clk) is
+    begin
+        if rising_edge(clk) then
+            DO_VL <= ena_dt;
+            if (cnt_mux(NST-1) = '0') then
+                DO_RE <= mlt_re;
+                DO_IM <= mlt_im;
+            else
+                DO_RE <= del_re;
+                DO_IM <= del_im;
+            end if;
         end if;
-    end if;
-end process;
+    end process;
+
+end generate;
+
+
+
+
 
 end int_fly_twd;

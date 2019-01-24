@@ -61,7 +61,7 @@ entity int_spdf_dif2 is
         FORMAT     : integer:=1; --! 1 - Uscaled, 0 - Scaled
         RNDMODE    : string:="TRUNCATE"; --integer:=0; --! 0 - Truncate, 1 - Rounding (FORMAT should be = 0)
         NFFT       : integer:=10; --! log2 of N points
-        STAGE      : integer:=0;  --! Butterfly stages
+        STAGE      : integer:=8;  --! Butterfly stages
         DATA_WIDTH : integer:=16; --! Data width
         TWDL_WIDTH : integer:=16; --! Twiddle width
         XUSE       : boolean:=TRUE; --! Use Add/Sub scheme or use delay data path
@@ -91,7 +91,7 @@ begin
     else
         ret_val := 7;
     end if;
-    return ret_val; 
+    return ret_val;
 end function;
 
 signal das_re      : std_logic_vector(DATA_WIDTH downto 0);
@@ -101,9 +101,6 @@ signal das_vl      : std_logic;
 signal fmt_re      : std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
 signal fmt_im      : std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
 signal fmt_vl      : std_logic;
-
-signal ww_re       : std_logic_vector(TWDL_WIDTH-1 downto 0);
-signal ww_im       : std_logic_vector(TWDL_WIDTH-1 downto 0);
 
 begin
 
@@ -233,12 +230,20 @@ begin
     -- Complex multiplier and delay --------------------------------------------
     ----------------------------------------------------------------------------
     xSTAGEn: if (STAGE > 1) generate
-        constant FTWDL     : integer:=fn_twd_delay(STAGE);
+
+        signal ww_re       : std_logic_vector(TWDL_WIDTH-1 downto 0);
+        signal ww_im       : std_logic_vector(TWDL_WIDTH-1 downto 0);
+
+        constant FTWDL     : integer:=fn_twd_delay(STAGE)+1;
 
         type std_logic_delayN is array (FTWDL-1 downto 0) of std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
         signal dre_zz      : std_logic_delayN;
         signal dim_zz      : std_logic_delayN;
         signal ena_zz      : std_logic_vector(FTWDL-1 downto 0);
+
+        signal ww_en       : std_logic;
+        signal cnt_ww      : std_logic_vector(STAGE downto 0);
+
     begin
         ----------------------------------------------------------------------------
         -- Align data and twiddles -------------------------------------------------
@@ -252,12 +257,12 @@ begin
             end if;
         end process;
 
-
         xSPDF_TWDLS: entity work.int_fly_twd
             generic map (
                 STAGE        => STAGE,
                 NFFT         => NFFT,
                 DTW          => DATA_WIDTH+FORMAT,
+                XUSE         => XUSE,
                 XSER         => XSER
             )
             port map (
@@ -276,6 +281,19 @@ begin
                 DO_VL        => DO_VL
             );
 
+        ---- Counter for twiddles ----
+        pr_cntw: process(clk) is
+        begin
+            if rising_edge(clk) then
+                if (RST = '1') then
+                    cnt_ww <= (others => '0');
+                elsif (fmt_vl = '1') then
+                    cnt_ww <= cnt_ww + '1';
+                end if;
+            end if;
+        end process;
+
+        ww_en <= (cnt_ww(STAGE) and fmt_vl) when rising_edge(clk);
         ----------------------------------------------------------------------------
         -- Twiddle factor ----------------------------------------------------------
         ----------------------------------------------------------------------------
@@ -283,14 +301,14 @@ begin
             generic map (
                 AWD      => TWDL_WIDTH,
                 NFFT     => NFFT,
-                STAGE    => NFFT-STAGE,
+                STAGE    => STAGE,
                 XSER     => XSER,
                 USE_MLT  => FALSE
             )
             port map (
                 CLK      => CLK,
                 RST      => rst,
-                WW_EN    => das_vl,
+                WW_EN    => ww_en, --das_vl,
                 WW_RE    => ww_re,
                 WW_IM    => ww_im
             );
