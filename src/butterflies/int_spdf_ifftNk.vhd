@@ -66,7 +66,7 @@ entity int_spdf_ifftNk is
         DATA_WIDTH : integer:=16; --! Data width
         TWDL_WIDTH : integer:=16; --! Twiddle width
         XUSE       : boolean:=TRUE; --! Use Add/Sub scheme or use delay data path
-        XSER       : string:="OLD" --! Xilinx series: NEW - DSP48E2, OLD - DSP48E1
+        XSER       : string:="NEW" --! Xilinx series: NEW - DSP48E2, OLD - DSP48E1
     );
     port (
         DI_RE      : in  std_logic_vector(DATA_WIDTH-1 downto 0); --! Re even input data
@@ -84,14 +84,15 @@ end int_spdf_ifftNk;
 
 architecture int_spdf_ifftNk of int_spdf_ifftNk is
 
-type complex_WxN is array (NFFT-1 downto 0) of std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
+type complex_XxN is array (NFFT-0 downto 0) of std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
+type complex_YxN is array (NFFT-1 downto 0) of std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
 
-signal fi_re        : complex_WxN;
-signal fi_im        : complex_WxN;
-signal fo_re        : complex_WxN;
-signal fo_im        : complex_WxN;
-signal fi_en        : std_logic_vector(NFFT-1 downto 0);
-signal fo_en        : std_logic_vector(NFFT-1 downto 0);
+signal fi_re        : complex_XxN := (others => (others => '0'));
+signal fi_im        : complex_XxN := (others => (others => '0'));
+signal fo_re        : complex_YxN := (others => (others => '0'));
+signal fo_im        : complex_YxN := (others => (others => '0'));
+signal fi_en        : std_logic_vector(NFFT-0 downto 0) := (others => '0');
+signal fo_en        : std_logic_vector(NFFT-1 downto 0) := (others => '0');
 
 begin
 

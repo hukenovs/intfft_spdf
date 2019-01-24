@@ -58,8 +58,8 @@ entity int_fly_fd2 is
         DI_IM     : in  std_logic_vector(DTW-1 downto 0); --! Im even input data
         DI_EN     : in  std_logic; --! Data clock enable
 
-        DO_RE     : out std_logic_vector(DTW-1 downto 0); --! Re even output data
-        DO_IM     : out std_logic_vector(DTW-1 downto 0); --! Im even output data
+        DO_RE     : out std_logic_vector(DTW downto 0); --! Re even output data
+        DO_IM     : out std_logic_vector(DTW downto 0); --! Im even output data
         DO_VL     : out std_logic; --! Output data valid            
         
         RST       : in  std_logic; --! Global Reset
@@ -84,8 +84,8 @@ end function addsub_delay;
 constant ADD_DELAY    : integer:=addsub_delay(DTW);
 
 ---------------- Multiplexers 0/1 ----------------
-signal mux_re       : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal mux_im       : std_logic_vector(DTW-1 downto 0):=(others=>'0');
+signal mux_re       : std_logic_vector(DTW downto 0):=(others=>'0');
+signal mux_im       : std_logic_vector(DTW downto 0):=(others=>'0');
 
 signal ib_re        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal ib_im        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
@@ -95,15 +95,15 @@ signal ia_im        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal iz_re        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
 signal iz_im        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
 
-signal oa_re        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal oa_im        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal ob_re        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal ob_im        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
+signal oa_re        : std_logic_vector(DTW downto 0):=(others=>'0');
+signal oa_im        : std_logic_vector(DTW downto 0):=(others=>'0');
+signal ob_re        : std_logic_vector(DTW downto 0):=(others=>'0');
+signal ob_im        : std_logic_vector(DTW downto 0):=(others=>'0');
 
-signal oz_re        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal oz_im        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal ot_re        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
-signal ot_im        : std_logic_vector(DTW-1 downto 0):=(others=>'0');
+signal oz_re        : std_logic_vector(DTW downto 0):=(others=>'0');
+signal oz_im        : std_logic_vector(DTW downto 0):=(others=>'0');
+signal ot_re        : std_logic_vector(DTW downto 0):=(others=>'0');
+signal ot_im        : std_logic_vector(DTW downto 0):=(others=>'0');
 
 ---------------- Align delays ----------------
 signal di_zn        : std_logic_vector(ADD_DELAY downto 0):=(others=>'0');
@@ -187,10 +187,10 @@ begin
     sub_re <= sub_re(sub_re'left-1 downto 0) & ib_re when rising_edge(clk);
     sub_im <= sub_im(sub_im'left-1 downto 0) & ib_im when rising_edge(clk);
 
-    oa_re <= add_re(add_re'left);
-    oa_im <= add_im(add_im'left);
-    ob_re <= sub_re(sub_re'left);
-    ob_im <= sub_im(sub_im'left);
+    oa_re <= add_re(add_re'left)(DTW-1) & add_re(add_re'left);
+    oa_im <= add_im(add_im'left)(DTW-1) & add_im(add_im'left);
+    ob_re <= sub_re(sub_re'left)(DTW-1) & sub_re(sub_re'left);
+    ob_im <= sub_im(sub_im'left)(DTW-1) & sub_im(sub_im'left);
     
 end generate;
 
