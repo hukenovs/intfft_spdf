@@ -71,9 +71,6 @@ end int_fly_spd;
 
 architecture int_fly_spd of int_fly_spd is
 
----- Select FFT stage ----
-constant NST        : integer:=NFFT-STAGE;
-
 ---- Find delay for add/sub butterfly function ----
 function addsub_delay(iDW: integer) return integer is
     variable ret_val : integer:=0;
@@ -89,7 +86,7 @@ end function addsub_delay;
 constant ADD_DELAY    : integer:=addsub_delay(DTW);
 
 type std_delayN is array (ADD_DELAY-1 downto 0) of std_logic_vector(DTW downto 0);
-type std_addrsN is array (ADD_DELAY-1 downto 0) of std_logic_vector(NST-2 downto 0);
+type std_addrsN is array (ADD_DELAY-1 downto 0) of std_logic_vector(STAGE-1 downto 0);
 
 
 ---------------- Multiplexers 0/1 ----------------
@@ -129,8 +126,8 @@ signal rd_dat         : std_logic_vector(2*DTW+1 downto 0);
 
 signal wr_ena         : std_logic:='0';
 
-signal wr_adr         : std_logic_vector(NST-2 downto 0);
-signal rd_adr         : std_logic_vector(NST-2 downto 0);
+signal wr_adr         : std_logic_vector(STAGE-1 downto 0);
+signal rd_adr         : std_logic_vector(STAGE-1 downto 0);
 
 ---------------- Align delays ----------------
 signal dz0_re         : std_delayN;
@@ -144,16 +141,16 @@ signal wr_adrz        : std_addrsN;
 
 signal mux_ena        : std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
 
-signal rd_cnt         : std_logic_vector(NST-1 downto 0);
+signal rd_cnt         : std_logic_vector(STAGE downto 0);
 signal rd_del         : std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
 signal rd_out         : std_logic:='0';
 
 signal wr_del         : std_logic_vector(ADD_DELAY-1 downto 0):=(others=>'0');
 signal wr_out         : std_logic:='0';
 
-signal cnt_i1         : std_logic_vector(NST-0 downto 0):=(others=>'0');
-signal cnt_i2         : std_logic_vector(NST-1 downto 0):=(others=>'0');
-signal cnt_i3         : std_logic_vector(NST-1 downto 0):=(others=>'0');
+signal cnt_i1         : std_logic_vector(STAGE+1 downto 0):=(others=>'0');
+signal cnt_i2         : std_logic_vector(STAGE   downto 0):=(others=>'0');
+signal cnt_i3         : std_logic_vector(STAGE   downto 0):=(others=>'0');
 signal cnt_en         : std_logic:='0';
 signal cnt_vl         : std_logic:='0';
 
@@ -236,7 +233,7 @@ begin
     if rising_edge(clk) then
         ---- Mux data A / B datapath ----
         mux_sel <= mux_ena(mux_ena'left-1);
-        mux_ena <= mux_ena(mux_ena'left-1 downto 0) & rd_cnt(NST-1);
+        mux_ena <= mux_ena(mux_ena'left-1 downto 0) & rd_cnt(STAGE);
         ---- Align input data and ramb output ----
         dz0_re <= dz0_re(ADD_DELAY-2 downto 0) & (di_re(DTW-1) & di_re);
         dz0_im <= dz0_im(ADD_DELAY-2 downto 0) & (di_im(DTW-1) & di_im);
@@ -292,7 +289,7 @@ end process;
 wr_del <= wr_del(wr_del'left-1 downto 0) & di_en when rising_edge(clk);
 wr_out <= wr_del(wr_del'left) when rising_edge(clk);
 
-wr_adrz <= wr_adrz(wr_adrz'left-1 downto 0) & rd_cnt(NST-2 downto 0) when rising_edge(clk);
+wr_adrz <= wr_adrz(wr_adrz'left-1 downto 0) & rd_cnt(STAGE-1 downto 0) when rising_edge(clk);
 
 wr_dat <= mux0_im & mux0_re;
 wr_adr <= wr_adrz(wr_adrz'left) when rising_edge(clk);
@@ -313,7 +310,7 @@ end process;
 xRAM_DL: entity work.ramb_dp_one_clk
     generic map (
         DATA        => 2*(DTW+1),
-        ADDR        => NST-1
+        ADDR        => STAGE
     )
     port map (
         A_WR        => wr_out,

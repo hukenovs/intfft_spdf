@@ -133,8 +133,7 @@ xMULT: if (XUSE = TRUE) generate
     signal ena_dt      : std_logic;
 
     ---- Select FFT stage ----
-    constant NST       : integer:=NFFT-STAGE;
-    signal cnt_mux     : std_logic_vector(NST-1 downto 0):=(others=>'0');
+    signal cnt_mux     : std_logic_vector(STAGE downto 0):=(others=>'0');
 
     signal mlt_re      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
     signal mlt_im      : std_logic_vector(DTW-1 downto 0):=(others=>'0');
@@ -195,7 +194,7 @@ begin
     begin
         if rising_edge(clk) then
             DO_VL <= ena_dt;
-            if (cnt_mux(NST-1) = '0') then
+            if (cnt_mux(STAGE) = '1') then
                 DO_RE <= mlt_re;
                 DO_IM <= mlt_im;
             else
@@ -206,9 +205,5 @@ begin
     end process;
 
 end generate;
-
-
-
-
 
 end int_fly_twd;

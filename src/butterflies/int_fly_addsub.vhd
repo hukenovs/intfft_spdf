@@ -73,7 +73,7 @@ architecture int_fly_addsub of int_fly_addsub is
 
 begin
 
-xFD1: if (STAGE = (NFFT-1)) generate
+xFD1: if (STAGE = 0) generate
     xFD: entity work.int_fly_fd
         generic map (
             DTW          => DTW,
@@ -94,7 +94,7 @@ xFD1: if (STAGE = (NFFT-1)) generate
         );
 end generate;
 
-xFD2: if (STAGE = (NFFT-2)) generate
+xFD2: if (STAGE = 1) generate
     xFD2: entity work.int_fly_fd2
         generic map (
             DTW          => DTW,
@@ -115,9 +115,8 @@ xFD2: if (STAGE = (NFFT-2)) generate
         );
 end generate;
 
-xHIGH: if (STAGE < NFFT-1) generate
-
-UUT: entity work.int_fly_spd
+xHIGH: if (STAGE > 1) generate
+    UUT: entity work.int_fly_spd
         generic map (
             STAGE        => STAGE,
             NFFT         => NFFT,

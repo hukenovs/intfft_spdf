@@ -126,13 +126,13 @@ begin
                 DO_VL        => fo_en(ii)
             );
 
-        fi_re(ii+1) <= fo_re(ii);
-        fi_im(ii+1) <= fo_im(ii);
-        fi_en(ii+1) <= fo_en(ii);
+        fi_re(ii+1) <= fo_re(ii) after 1 ns when rising_edge(clk);
+        fi_im(ii+1) <= fo_im(ii) after 1 ns when rising_edge(clk);
+        fi_en(ii+1) <= fo_en(ii) after 1 ns when rising_edge(clk);
     end generate;
 
-DO_RE <= fo_re(NFFT-1);
-DO_IM <= fo_im(NFFT-1);
-DO_VL <= fo_en(NFFT-1);
+DO_RE <= fo_re(NFFT-1) after 1 ns when rising_edge(clk);
+DO_IM <= fo_im(NFFT-1) after 1 ns when rising_edge(clk);
+DO_VL <= fo_en(NFFT-1) after 1 ns when rising_edge(clk);
 
 end int_spdf_fftNk;

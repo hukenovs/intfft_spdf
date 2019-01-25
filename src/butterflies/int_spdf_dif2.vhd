@@ -152,7 +152,7 @@ begin
     ----------------------------------------------------------------------------
     xSPDF_ADDSUB: entity work.int_fly_addsub
         generic map (
-            STAGE        => STAGE,
+            STAGE        => NFFT-STAGE-1,
             NFFT         => NFFT,
             DTW          => DATA_WIDTH,
             XUSE         => XUSE,
@@ -171,15 +171,14 @@ begin
             DO_VL        => das_vl
         );
 
-
-    xSTAGE0: if (STAGE = 0) generate
+    xSTAGE0: if ((NFFT-STAGE-1) = 0) generate
         DO_RE <= fmt_re;
         DO_IM <= fmt_im;
         DO_VL <= fmt_vl;
     end generate;
 
-    xSTAGE1: if (STAGE = 1) generate
-        signal dt_cnt   : std_logic_vector(NFFT-STAGE-1 downto 0);
+    xSTAGE1: if ((NFFT-STAGE-1) = 1) generate
+        signal dt_cnt   : std_logic_vector(1 downto 0);
         signal dt_sw    : std_logic;
     begin
         ---- Counter for twiddle factor ----
@@ -193,7 +192,7 @@ begin
                 end if;
             end if;
         end process;
-        dt_sw <= dt_cnt(NFFT-STAGE-1); -- when rising_edge(clk);
+        dt_sw <= dt_cnt(1); -- when rising_edge(clk);
 
         --------------------------------------------------------------
         ---- NB! Multiplication by (-1) is the same as inverse.   ----
@@ -229,12 +228,12 @@ begin
     ----------------------------------------------------------------------------
     -- Complex multiplier and delay --------------------------------------------
     ----------------------------------------------------------------------------
-    xSTAGEn: if (STAGE > 1) generate
+    xSTAGEn: if ((NFFT-STAGE-1) > 1) generate
 
         signal ww_re       : std_logic_vector(TWDL_WIDTH-1 downto 0);
         signal ww_im       : std_logic_vector(TWDL_WIDTH-1 downto 0);
 
-        constant FTWDL     : integer:=fn_twd_delay(STAGE)+1;
+        constant FTWDL     : integer:=fn_twd_delay(NFFT-STAGE-1)+1;
 
         type std_logic_delayN is array (FTWDL-1 downto 0) of std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
         signal dre_zz      : std_logic_delayN;
@@ -242,7 +241,7 @@ begin
         signal ena_zz      : std_logic_vector(FTWDL-1 downto 0);
 
         signal ww_en       : std_logic;
-        signal cnt_ww      : std_logic_vector(STAGE downto 0);
+        signal cnt_ww      : std_logic_vector(NFFT-STAGE-1 downto 0);
 
     begin
         ----------------------------------------------------------------------------
@@ -259,7 +258,7 @@ begin
 
         xSPDF_TWDLS: entity work.int_fly_twd
             generic map (
-                STAGE        => STAGE,
+                STAGE        => NFFT-STAGE-1,
                 NFFT         => NFFT,
                 DTW          => DATA_WIDTH+FORMAT,
                 XUSE         => XUSE,
@@ -293,7 +292,7 @@ begin
             end if;
         end process;
 
-        ww_en <= (cnt_ww(STAGE) and fmt_vl) when rising_edge(clk);
+        ww_en <= (cnt_ww(NFFT-STAGE-1) and fmt_vl) when rising_edge(clk);
         ----------------------------------------------------------------------------
         -- Twiddle factor ----------------------------------------------------------
         ----------------------------------------------------------------------------
@@ -301,7 +300,7 @@ begin
             generic map (
                 AWD      => TWDL_WIDTH,
                 NFFT     => NFFT,
-                STAGE    => STAGE,
+                STAGE    => NFFT-STAGE-1,
                 XSER     => XSER,
                 USE_MLT  => FALSE
             )
