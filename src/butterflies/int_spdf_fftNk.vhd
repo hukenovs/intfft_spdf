@@ -115,7 +115,7 @@ begin
                 FORMAT        => FORMAT,
                 RNDMODE       => RNDMODE,
                 NFFT          => NFFT,
-                STAGE         => ii,
+                STAGE         => NFFT-ii-1,
                 DATA_WIDTH    => DATA_WIDTH+ii*FORMAT,
                 TWDL_WIDTH    => TWDL_WIDTH,
                 XUSE          => XUSE,
