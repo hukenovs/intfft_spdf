@@ -5,7 +5,8 @@ Integer (Scaled / Unscaled) Radix-2 **Single Path Delay Feedback** FFT / IFFT co
 # Integer FFT/IFFT cores
 This project contains **fully pipelined** integer **unscaled** and **scaled (truncated LSB)** FFT/IFFT cores for FPGA, Scheme: Radix-2, Decimation in frequency and decimation in time;    
 Integer data type and twiddles with configurable data width.  
-No need to align data and twiddles between FFT stages. 
+No need to align data and twiddles between FFT stages.  
+Improved area resources: Calculate twiddles with Taylor series (2-order) when (stages > 11) instead of store all data in BRAMs.  
 
 **Code language** - VHDL
 **Vendor**: Xilinx, 6/7-series, Ultrascale, Ultrascale+;  
