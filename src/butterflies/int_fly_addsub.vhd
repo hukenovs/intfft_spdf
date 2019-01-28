@@ -116,7 +116,7 @@ xFD2: if (STAGE = 1) generate
 end generate;
 
 xHIGH: if (STAGE > 1) generate
-    UUT: entity work.int_fly_spd
+    xSPD: entity work.int_fly_spd
         generic map (
             STAGE        => STAGE,
             NFFT         => NFFT,

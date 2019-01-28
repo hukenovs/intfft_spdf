@@ -89,7 +89,7 @@ begin
     if (ivar < 11) then
         ret_val := 2;
     else
-        ret_val := 7;
+        ret_val := 6;
     end if;
     return ret_val;
 end function;
@@ -209,16 +209,21 @@ begin
             if rising_edge(clk) then
                 DO_VL <= fmt_vl;
                 ---- WW(0){Re,Im} = {1, 0} ----
-                if (dt_sw = '0') then
+                if (dt_cnt(1) = '0') then
                     DO_RE <= fmt_re;
                     DO_IM <= fmt_im;
                 ---- WW(1){Re,Im} = {0, 1} ----
                 else
-                    DO_RE <= fmt_im;
-                    if (fmt_re(DATA_WIDTH+FORMAT-1) = '0') then
-                        DO_IM <= not(fmt_re) + '1';
+                    if (dt_cnt(0) = '0') then
+                        DO_RE <= fmt_re;
+                        DO_IM <= fmt_im;
                     else
-                        DO_IM <= not(fmt_re);
+                        DO_RE <= fmt_im;
+                        if (fmt_re(DATA_WIDTH+FORMAT-1) = '0') then
+                            DO_IM <= not(fmt_re) + '1';
+                        else
+                            DO_IM <= not(fmt_re);
+                        end if;
                     end if;
                 end if;
             end if;

@@ -18,13 +18,21 @@
 --
 -- * - Decimation in frequency. Radix-2: 2 data words per clock.
 --
--- Decimation in frequency
+-- Decimation in frequency:
 --
 --    X = (A+B),
 --    Y = (A-B)*W;
 --
---    FORMAT  : 1 - Unscaled, 0 - Scaled data output
---    RNDMODE : Rounding (round), Truncate (floor)
+--    FORMAT        : 1 - Unscaled, 0 - Scaled data output
+--    RNDMODE       : Rounding (round), Truncate (floor)
+--    NFFT          : Number of FFT stages [ =log2(N) ]
+--    DATA_WIDTH    : Input data width **
+--    TWDL_WIDTH    : Twiddles data width (depends on precision of twiddle factor)
+--    TWDL_WIDTH    : Twiddles data width (precision of twiddle factor)
+--    XUSE          : TRUE / FALSE: Use math calculation or use delay data path
+--    XSER          : "NEW" / "OLD": Xilinx series: NEW - DSP48E2, OLD - DSP48E1
+--
+-- ** - Note: for Unscaled mode: output data width = input data width + log2(N)
 --
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -131,8 +139,8 @@ begin
         fi_en(ii+1) <= fo_en(ii) after 1 ns when rising_edge(clk);
     end generate;
 
-DO_RE <= fo_re(NFFT-1) after 1 ns when rising_edge(clk);
-DO_IM <= fo_im(NFFT-1) after 1 ns when rising_edge(clk);
-DO_VL <= fo_en(NFFT-1) after 1 ns when rising_edge(clk);
+    DO_RE <= fo_re(NFFT-1) after 1 ns when rising_edge(clk);
+    DO_IM <= fo_im(NFFT-1) after 1 ns when rising_edge(clk);
+    DO_VL <= fo_en(NFFT-1) after 1 ns when rising_edge(clk);
 
 end int_spdf_fftNk;
