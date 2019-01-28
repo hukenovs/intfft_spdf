@@ -1,5 +1,5 @@
 # Integer SPDF-FFT/IFFT Radix-2
-**SPDF DIT DIF Radix-2 FFT IFFT**
+**SPDF DIT DIF Radix-2 FFT IFFT**  
 Integer (Scaled / Unscaled) Radix-2 **Single Path Delay Feedback** FFT / IFFT cores 
 
 # Integer FFT/IFFT cores
