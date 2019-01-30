@@ -62,11 +62,6 @@ License: GNU GPL 3.0.
 - Adder:
   * int_addsub_dsp48 – based on DSP48, up to 96-bit two’s-complement addition/substraction.
 
-- Delay line:
-  * int_delay_line – main delay line, cross-commutation data between butterflies.
-  * int_align_fft – data and twiddle factor alignment for butterflies in FFT core,
-  * int_align_fft – data and twiddle factor alignment for butterflies in IFFT core,
-
 - Twiddles:
   * rom_twiddle_int – 1/4-periodic signal, twiddle factor generator based on memory and sometimes uses DSP48 units for large FFTs
   * row_twiddle_tay – twiddle factor generator which used Taylor scheme for calculation twiddles.
@@ -85,4 +80,3 @@ License: GNU GPL 3.0.
 
 ### License:
   * GNU GPL 3.0.  
-
