@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 --
--- Title       : fft_signle_test
+-- Title       : fft_testbench
 -- Design      : fpfftk
 -- Author      : Kapitanov Alexander
 -- Company     : 
@@ -14,12 +14,11 @@
 --        SCALE         - (s) - Scale factor for float-to-fix transform
 --        DATA_WIDTH    - (p) - Data width for signal imitator: 8-32 bits.
 --        TWDL_WIDTH    - (p) - Data width for twiddle factor : 16-24 bits.
---        OWIDTH        - (p) - Data width for signal output: 16, 24, 32 bits.
 --        FLY_FWD       - (s) - Use butterflies into Forward FFT: 1 - TRUE, 0 - FALSE
 --        DBG_FWD       - (p) - 1 - Debug in FFT (save file in FP32 on selected stage)    
 --        DT_RND        - (s) - Data output multiplexer for rounding            
---        XSERIES       - (p) -    FPGA Series: ULTRASCALE / 7SERIES
---        USE_MLT       - (p) -    Use Multiplier for calculation M_PI in Twiddle factor
+--        XSERIES       - (p) - FPGA Series: ULTRASCALE / 7SERIES
+--        USE_MLT       - (p) - Use Multiplier for calculation M_PI in Twiddle factor
 --
 -- where: (p) - generic parameter, (s) - signal.
 --
@@ -57,23 +56,22 @@ use ieee.std_logic_arith.all;
 use ieee.math_real.all;
 
 use ieee.std_logic_textio.all;
-use std.textio.all;    
+use std.textio.all;
 
-entity fft_signle_test is 
-end fft_signle_test;
+entity fft_testbench is 
+end fft_testbench;
 
-architecture fft_signle_test of fft_signle_test is           
+architecture fft_testbench of fft_testbench is           
   
 -- **************************************************************** --
 -- **** Constant declaration: change any parameter for testing **** --
 -- **************************************************************** --
 constant    NFFT          : integer:=8; -- Number of stages = log2(FFT LENGTH)
-constant    STAGE         : integer:=0; -- Number of stages = log2(FFT LENGTH)
 constant    DATA_WIDTH    : integer:=16; -- Data width for signal imitator    : 8-32.
 constant    TWDL_WIDTH    : integer:=16; -- Data width for twiddles    : 8-25.
 
 constant    FORMAT        : integer:=1; --! 1 - Uscaled, 0 - Scaled
-constant    RNDMODE       : string:="TRUNCATE";
+constant    RNDMODE       : string:="ROUNDING"; --! ROUNDING, TRUNCATE
 
 -- **************************************************************** --
 -- ********* Signal declaration: clocks, reset, data etc. ********* --
@@ -88,9 +86,14 @@ signal di_re     : std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0');
 signal di_im     : std_logic_vector(DATA_WIDTH-1 downto 0):=(others=>'0'); 
 signal di_en     : std_logic:='0';
 
-signal do_re     : std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
-signal do_im     : std_logic_vector(DATA_WIDTH+FORMAT-1 downto 0);
+signal do_re     : std_logic_vector(DATA_WIDTH+1*NFFT*FORMAT-1 downto 0);
+signal do_im     : std_logic_vector(DATA_WIDTH+1*NFFT*FORMAT-1 downto 0);
 signal do_vl     : std_logic;
+
+signal qo_re     : std_logic_vector(DATA_WIDTH+2*NFFT*FORMAT-1 downto 0);
+signal qo_im     : std_logic_vector(DATA_WIDTH+2*NFFT*FORMAT-1 downto 0);
+signal qo_vl     : std_logic;
+
 
 begin
 
@@ -164,7 +167,7 @@ begin
 end process; 
 
 --------------------------------------------------------------------------------
-xDIF_FFTK: entity work.int_spdf_single_fft
+xDIF_FFTK: entity work.int_spdf_fft_only
     generic map (
         XUSE         => TRUE,
         FORMAT       => FORMAT,
@@ -183,33 +186,68 @@ xDIF_FFTK: entity work.int_spdf_single_fft
         DI_IM        => di_im,
         DI_EN        => di_en,
         ---- Output data ----
-        DO_RE        => open,
-        DO_IM        => open,
-        DO_VL        => open
+        DO_RE        => do_re,
+        DO_IM        => do_im,
+        DO_VL        => do_vl
     );
 --------------------------------------------------------------------------------
-    xFFT_IFFT: entity work.int_spdf_fft_ifft
-        generic map (
-            XUSE         => TRUE,
-            FORMAT       => FORMAT,
-            RNDMODE      => RNDMODE,
-    
-            DATA_WIDTH   => DATA_WIDTH,
-            TWDL_WIDTH   => TWDL_WIDTH,
-            NFFT         => NFFT
-        )   
-        port map ( 
-            ---- Common signals ----
-            RST          => reset,    
-            CLK          => clk,    
-            ---- Input data ----
-            DI_RE        => di_re,
-            DI_IM        => di_im,
-            DI_EN        => di_en,
-            ---- Output data ----
-            DO_RE        => open,
-            DO_IM        => open,
-            DO_VL        => open
-        );    
+xFFT_IFFT: entity work.int_spdf_fft_ifft
+    generic map (
+        XUSE         => TRUE,
+        FORMAT       => FORMAT,
+        RNDMODE      => RNDMODE,
 
-end fft_signle_test; 
+        DATA_WIDTH   => DATA_WIDTH,
+        TWDL_WIDTH   => TWDL_WIDTH,
+        NFFT         => NFFT
+    )   
+    port map ( 
+        ---- Common signals ----
+        RST          => reset,    
+        CLK          => clk,    
+        ---- Input data ----
+        DI_RE        => di_re,
+        DI_IM        => di_im,
+        DI_EN        => di_en,
+        ---- Output data ----
+        DO_RE        => qo_re,
+        DO_IM        => qo_im,
+        DO_VL        => qo_vl
+    );    
+
+-------------------------------------------------------------------------------- 
+write_fft: process is
+    file log      : text open WRITE_MODE is "../../../../../math/fft_only.dat";
+    variable str  : line;
+    variable spc  : string(1 to 4) := (others => ' ');
+begin
+    if rising_edge(clk) then
+        if (do_vl = '1') then
+            --------------------------------
+            write(str, CONV_INTEGER(do_re), LEFT);
+            write(str, spc);            
+            --------------------------------
+            write(str, CONV_INTEGER(do_im), LEFT);
+            writeline(log, str);
+        end if;
+    end if;
+end process; 
+
+write_ifft: process is
+    file log      : text open WRITE_MODE is "../../../../../math/fft_only.dat";
+    variable str  : line;
+    variable spc  : string(1 to 4) := (others => ' ');
+begin
+    if rising_edge(clk) then
+        if (do_vl = '1') then
+            --------------------------------
+            write(str, CONV_INTEGER(do_re), LEFT);
+            write(str, spc);            
+            --------------------------------
+            write(str, CONV_INTEGER(do_im), LEFT);
+            writeline(log, str);
+        end if;
+    end if;
+end process; 
+
+end fft_testbench; 

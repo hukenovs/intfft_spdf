@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 --
--- Title       : int_spdf_single_fft
+-- Title       : int_spdf_fft_only
 -- Design      : FFT SPDF
 -- Author      : Kapitanov Alexander
 -- Company     : 
@@ -63,7 +63,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity int_spdf_single_fft is
+entity int_spdf_fft_only is
     generic (
         FORMAT     : integer:=1; --! 1 - Uscaled, 0 - Scaled
         RNDMODE    : string:="TRUNCATE"; --integer:=0; --! 0 - Truncate, 1 - Rounding (FORMAT should be = 0)
@@ -85,18 +85,18 @@ entity int_spdf_single_fft is
         RST        : in  std_logic; --! Global Reset
         CLK        : in  std_logic --! DSP Clock
     );
-end int_spdf_single_fft;
+end int_spdf_fft_only;
 
-architecture int_spdf_single_fft of int_spdf_single_fft is
+architecture int_spdf_fft_only of int_spdf_fft_only is
 
 ---------------- Output data ----------------
 signal fft_re     : std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
 signal fft_im     : std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
-signal fft_vl     : std_logic;            
+signal fft_vl     : std_logic;
     
-signal rev_re      : std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
-signal rev_im      : std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
-signal rev_vl      : std_logic;
+signal rev_re     : std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
+signal rev_im     : std_logic_vector(FORMAT*NFFT+DATA_WIDTH-1 downto 0);
+signal rev_vl     : std_logic;
 
 begin
 
@@ -114,8 +114,8 @@ begin
         )   
         port map ( 
             ---- Common signals ----
-            RST          => RST,    
-            CLK          => CLK,    
+            RST          => RST,
+            CLK          => CLK,
             ---- Input data ----
             DI_RE        => DI_RE,
             DI_IM        => DI_IM,
@@ -145,7 +145,7 @@ begin
     
     xBR_IM : entity work.int_bitrev_order
         generic map (
-            PAIR       => FALSE,        
+            PAIR       => FALSE,
             STAGES     => NFFT,
             NWIDTH     => FORMAT*NFFT+DATA_WIDTH
         )
@@ -163,4 +163,4 @@ DO_RE <= rev_re;
 DO_IM <= rev_im;
 DO_VL <= rev_vl;
 
-end int_spdf_single_fft;
+end int_spdf_fft_only;

@@ -1,8 +1,8 @@
 # Integer SPDF-FFT/IFFT Radix-2
 **SPDF DIT DIF Radix-2 FFT IFFT**  
-Integer (Scaled / Unscaled) Radix-2 **Single Path Delay Feedback** FFT / IFFT cores 
+Integer (Scaled / Unscaled) Radix-2 **Single Path Delay Feedback** Forward / Inverse FFT core
 
-# Integer FFT/IFFT cores
+# Integer FFT / IFFT cores
 This project contains **fully pipelined** integer **unscaled** and **scaled (truncated LSB)** FFT/IFFT cores for FPGA, Scheme: Radix-2, Decimation in frequency and decimation in time;    
 Integer data type and twiddles with configurable data width.  
 No need to align data and twiddles between FFT stages.  
@@ -11,7 +11,7 @@ Improved area resources: Calculate twiddles with Taylor series (2-order) when (s
 **Code language** - VHDL
 **Vendor**: Xilinx, 6/7-series, Ultrascale, Ultrascale+;  
 
-> _Smallest FPGA resourses and highest processing frequency that you ever seen!_   
+> _Optimal FPGA resourses and highest processing frequency that you ever seen!_   
 
 License: GNU GPL 3.0.
 
@@ -27,8 +27,8 @@ License: GNU GPL 3.0.
 
 ### List of complements:
 - FFTs:
-   * int_spdf_fftNk – Full-precision or Scaled FFT, Radix-2, DIF, input flow - normal, output flow - bit-reversed.
-   * int_spdf_ifftNk – Full-precision or Scaled IFFT, Radix-2, DIT, input flow - bit-reversed, output flow - normal.
+   * int_spdf_fftNk – Forward FFT, Radix-2, DIF, input flow - normal, output flow - bit-reversed.
+   * int_spdf_ifftNk – Inverse FFT, Radix-2, DIT, input flow - bit-reversed, output flow - normal.
 - Butterflies:
    * int_spdf_dif2 – Full-precision or Scaled butterfly Radix-2, decimation in frequency,
    * int_spdf_dit2 – Full-precision or Scaled butterfly Radix-2, decimation in time,

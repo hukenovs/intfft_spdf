@@ -105,11 +105,9 @@ DSVIm = round(DatIm);
 DSV(:,1) = DSVRe;
 DSV(:,2) = DSVIm;
 
-
-
 % Save data to file
-fid = fopen ("di_single.dat", "w");
-for i = 1:NFFT/1
+fid = fopen ("test_signal.dat", "w");
+for i = 1:NFFT
     fprintf(fid, "%d %d\n",  DSVRe(i,1), DSVIm(i,1));
 end
 fclose(fid);
