@@ -216,38 +216,38 @@ xFFT_IFFT: entity work.int_spdf_fft_ifft
     );    
 
 -------------------------------------------------------------------------------- 
-write_fft: process is
-    file log      : text open WRITE_MODE is "../../../../../math/fft_only.dat";
-    variable str  : line;
-    variable spc  : string(1 to 4) := (others => ' ');
-begin
-    if rising_edge(clk) then
-        if (do_vl = '1') then
-            --------------------------------
-            write(str, CONV_INTEGER(do_re), LEFT);
-            write(str, spc);            
-            --------------------------------
-            write(str, CONV_INTEGER(do_im), LEFT);
-            writeline(log, str);
-        end if;
-    end if;
-end process; 
+--write_fft: process is
+--    file log      : text open WRITE_MODE is "../../../../../math/fft_only.dat";
+--    variable str  : line;
+--    variable spc  : string(1 to 4) := (others => ' ');
+--begin
+--    if rising_edge(clk) then
+--        if (do_vl = '1') then
+--            --------------------------------
+--            write(str, CONV_INTEGER(do_re), LEFT);
+--            write(str, spc);            
+--            --------------------------------
+--            write(str, CONV_INTEGER(do_im), LEFT);
+--            writeline(log, str);
+--        end if;
+--    end if;
+--end process; 
 
-write_ifft: process is
-    file log      : text open WRITE_MODE is "../../../../../math/fft_only.dat";
-    variable str  : line;
-    variable spc  : string(1 to 4) := (others => ' ');
-begin
-    if rising_edge(clk) then
-        if (do_vl = '1') then
-            --------------------------------
-            write(str, CONV_INTEGER(do_re), LEFT);
-            write(str, spc);            
-            --------------------------------
-            write(str, CONV_INTEGER(do_im), LEFT);
-            writeline(log, str);
-        end if;
-    end if;
-end process; 
+--write_ifft: process is
+--    file log      : text open WRITE_MODE is "../../../../../math/fft_ifft.dat";
+--    variable str  : line;
+--    variable spc  : string(1 to 4) := (others => ' ');
+--begin
+--    if rising_edge(clk) then
+--        if (qo_vl = '1') then
+--            --------------------------------
+--            write(str, CONV_INTEGER(qo_re), LEFT);
+--            write(str, spc);            
+--            --------------------------------
+--            write(str, CONV_INTEGER(qo_im), LEFT);
+--            writeline(log, str);
+--        end if;
+--    end if;
+--end process; 
 
 end fft_testbench; 
