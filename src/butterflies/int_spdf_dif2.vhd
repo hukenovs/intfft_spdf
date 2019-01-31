@@ -261,6 +261,7 @@ begin
 
         xSPDF_TWDLS: entity work.int_fly_twd
             generic map (
+                FORWARD      => FALSE,                
                 STAGE        => STAGE,
                 NFFT         => NFFT,
                 DTW          => DATA_WIDTH+FORMAT,

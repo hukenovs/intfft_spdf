@@ -149,11 +149,11 @@ begin
                         mlt_re <= DI_RE;
                         mlt_im <= DI_IM;
                     else
-                        mlt_re <= DI_IM;
-                        if (DI_RE(DATA_WIDTH-1) = '0') then
-                            mlt_im <= not(DI_RE) + '1';
+                        mlt_im <= DI_RE;
+                        if (DI_IM(DATA_WIDTH-1) = '0') then
+                            mlt_re <= not(DI_IM) + '1';
                         else
-                            mlt_im <= not(DI_RE);
+                            mlt_re <= not(DI_IM);
                         end if;
                     end if;
                 end if;
@@ -195,17 +195,19 @@ begin
         ----------------------------------------------------------------------------
         xSPDF_TWDLS: entity work.int_fly_twd
             generic map (
+                FORWARD      => FALSE,
                 STAGE        => STAGE,
                 NFFT         => NFFT,
                 DTW          => DATA_WIDTH,
+                XUSE         => XUSE,
                 XSER         => XSER
             )
             port map (
                 RST          => RST,
                 CLK          => CLK,
 
-                DI_RE        => dre_zz(FTWDL-1),
-                DI_IM        => dim_zz(FTWDL-1),
+                DI_RE        => dre_zz(FTWDL-1), -- dre_zz(FTWDL-1),
+                DI_IM        => dim_zz(FTWDL-1), -- dim_zz(FTWDL-1),
                 DI_EN        => ena_zz(FTWDL-1),
 
                 WW_RE        => ww_re,
@@ -244,7 +246,7 @@ begin
             port map (
                 CLK      => CLK,
                 RST      => rst,
-                WW_EN    => di_en,
+                WW_EN    => ww_en,
                 WW_RE    => ww_re,
                 WW_IM    => ww_im
             );

@@ -56,6 +56,7 @@ use ieee.std_logic_unsigned.all;
 
 entity int_fly_twd is
     generic (
+        FORWARD    : boolean:=TRUE;--! Forward / Inverse FFT
         NFFT       : integer:=0;   --! log2 of N points
         STAGE      : integer:=0;   --! Butterfly stages
         DTW        : integer:=16;  --! Data width
@@ -154,27 +155,48 @@ begin
     ena_dt <= ena_zz(DATA_DELAY-1);
     del_re <= dre_zz(DATA_DELAY-1);
     del_im <= dim_zz(DATA_DELAY-1);
-
+    
     ------------ Complex Multiplier ------------
-    xCMLT: entity work.int_cmult_dsp48
-        generic map (
-            DTW       => DTW,
-            TWD       => TWD,
-            XSER      => XSER
-        )
-        port map (
-            DI_RE     => DI_RE,
-            DI_IM     => DI_IM,
-            WW_RE     => WW_RE,
-            WW_IM     => WW_IM,
+    xFWD: if (FORWARD = TRUE) generate
+        xCMLT: entity work.int_cmult_dsp48
+            generic map (
+                DTW       => DTW,
+                TWD       => TWD,
+                XSER      => XSER
+            )
+            port map (
+                DI_RE     => DI_RE,
+                DI_IM     => DI_IM,
+                WW_RE     => WW_RE,
+                WW_IM     => WW_IM,
 
-            DO_RE     => mlt_re,
-            DO_IM     => mlt_im,
+                DO_RE     => mlt_re,
+                DO_IM     => mlt_im,
 
-            RST       => RST,
-            CLK       => CLK
-        );
+                RST       => RST,
+                CLK       => CLK
+            );
+    end generate;
+    xINV: if (FORWARD = FALSE) generate
+        xCMLT: entity work.int_cmult_dsp48
+            generic map (
+                DTW       => DTW,
+                TWD       => TWD,
+                XSER      => XSER
+            )
+            port map (
+                DI_RE     => DI_IM,
+                DI_IM     => DI_RE,
+                WW_RE     => WW_RE,
+                WW_IM     => WW_IM,
 
+                DO_RE     => mlt_im,
+                DO_IM     => mlt_re,
+
+                RST       => RST,
+                CLK       => CLK
+            );
+    end generate;    
     ------------ Counter for mux output flow ------------
     pr_mux: process(clk) is
     begin
