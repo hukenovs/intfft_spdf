@@ -20,7 +20,7 @@ License: GNU GPL 3.0.
 | **Title**         | Universal integer SPDF FFT cores (Xilinx FPGAs) |
 | -- | -- |
 | **Author**        | Alexander Kapitanov                             |
-| **Contact**       | sallador@bk.ru                                  |
+| **Contact**       | <hidden>                                        |
 | **Project lang**  | VHDL                                            |
 | **Vendor**        | Xilinx: 6/7-series, Ultrascale, US+             |
 | **Release Date**  | 15 Jan 2019                                     |
